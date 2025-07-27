@@ -7,6 +7,18 @@
 <body>
     <h2>Step 4: Create Admin User</h2>
 
+    @if (session('success'))
+        <div style="color: green; background: #d4edda; padding: 10px; border: 1px solid #c3e6cb; border-radius: 4px; margin-bottom: 20px;">
+            ✅ {{ session('success') }}
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div style="color: red; background: #f8d7da; padding: 10px; border: 1px solid #f5c6cb; border-radius: 4px; margin-bottom: 20px;">
+            ❌ {{ session('error') }}
+        </div>
+    @endif
+
     @if ($errors->any())
         <div style="color: red;">
             <ul>

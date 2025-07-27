@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\InstallController;
+use App\Http\Controllers\WelcomeController;
+use App\Models\User;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -13,18 +15,16 @@ use App\Http\Controllers\InstallController;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [WelcomeController::class, 'index']);
 
 // routes/web.php
 Route::group(['middleware' => 'check.install'], function () {
-    Route::get('/install', [InstallController::class, 'welcome']);
-    Route::get('/install/requirements', [InstallController::class, 'requirements']);
-    Route::get('/install/env', [InstallController::class, 'envForm']);
-    Route::post('/install/env', [InstallController::class, 'saveEnv']);
-    Route::get('/install/database', [InstallController::class, 'dbSetup']);
-    Route::post('/install/admin', [InstallController::class, 'createAdmin']);
-    Route::get('/install/finish', [InstallController::class, 'finish']);
+    Route::get('/install', [InstallController::class, 'welcome'])->name('install.welcome');
+    Route::get('/install/requirements', [InstallController::class, 'requirements'])->name('install.requirements');
+    Route::get('/install/env', [InstallController::class, 'envForm'])->name('install.env');
+    Route::post('/install/env', [InstallController::class, 'saveEnv'])->name('install.saveEnv');
+    Route::get('/install/database', [InstallController::class, 'dbSetup'])->name('install.database');
+    Route::post('/install/admin', [InstallController::class, 'createAdmin'])->name('install.admin');
+    Route::get('/install/finish', [InstallController::class, 'finish'])->name('install.finish');
 });
 
