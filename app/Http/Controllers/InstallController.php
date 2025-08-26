@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use Schema;
+use Illuminate\Support\Facades\Schema;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -52,23 +52,21 @@ class InstallController extends Controller
                 'db_pass' => 'nullable|string',
             ]);
 
-            // dd($request->all());
-
             $data = $request->only(['db_host', 'db_name', 'db_user', 'db_pass']);
             Log::info('Validation passed, data:', $data);
             
-            // 1. Update .env ফাইল - Dynamic configuration
+            // 1. Update .env file - Dynamic configuration
             $this->setEnv([
-                'DB_HOST' => $data['db_host'], // ✅ User input ব্যবহার করি
+                'DB_HOST' => $data['db_host'],
                 'DB_DATABASE' => $data['db_name'],
                 'DB_USERNAME' => $data['db_user'],
                 'DB_PASSWORD' => $data['db_pass'] ?? '',
                 'DB_CONNECTION' => 'mysql',
-                'DB_PORT' => '3308', // ✅ Docker mapped port
+                'DB_PORT' => '3308', // Docker mapped port
             ]);
             Log::info('Environment file updated');
 
-            // 2. Database তৈরি করার চেষ্টা PDO দিয়ে
+            // 2. Database creation using PDO
             // Detect environment and use appropriate connection
             $connectionHost = $this->detectConnectionHost($data['db_host']);
             $connectionPort = $this->detectConnectionPort($data['db_host']);
@@ -78,7 +76,7 @@ class InstallController extends Controller
             $rootPdo = new \PDO(
                 "mysql:host={$connectionHost};port={$connectionPort};charset=utf8mb4",
                 'root',
-                'root', // এটা docker-compose.yml এর MYSQL_ROOT_PASSWORD
+                'root', // Docker compose MYSQL_ROOT_PASSWORD
                 [
                     \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                     \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
@@ -87,11 +85,11 @@ class InstallController extends Controller
             );
             Log::info('Root PDO connection established');
         
-            // Create DB
+            // Create database
             $rootPdo->exec("CREATE DATABASE IF NOT EXISTS `{$data['db_name']}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-            Log::info('Database created');
+            Log::info('Database created successfully');
         
-            // Create User & Grant (only if user doesn't exist)
+            // Create user & grant privileges (only if user doesn't exist)
             try {
                 Log::info('Starting user creation process');
                 $rootPdo->exec("CREATE USER IF NOT EXISTS '{$data['db_user']}'@'%' IDENTIFIED BY '{$data['db_pass']}'");
@@ -103,9 +101,17 @@ class InstallController extends Controller
                 Log::info('User created and privileges granted');
             } catch (\PDOException $e) {
                 Log::warning('User might already exist: ' . $e->getMessage());
+                // Try to grant privileges anyway
+                try {
+                    $rootPdo->exec("GRANT ALL PRIVILEGES ON `{$data['db_name']}`.* TO '{$data['db_user']}'@'%'");
+                    $rootPdo->exec("FLUSH PRIVILEGES");
+                    Log::info('Privileges granted to existing user');
+                } catch (\PDOException $e2) {
+                    Log::warning('Failed to grant privileges: ' . $e2->getMessage());
+                }
             }
         
-            // 3. Clear config cache যাতে নতুন .env পড়ে
+            // 3. Clear config cache to reload new .env
             Log::info('Starting config cache clear');
             Artisan::call('config:clear');
             Log::info('Config cache cleared');
@@ -127,7 +133,6 @@ class InstallController extends Controller
             return back()->withInput()->withErrors(['error' => 'An error occurred: ' . $e->getMessage()]);
         }
     }
-
 
     public function dbSetup()
     {
@@ -168,7 +173,7 @@ class InstallController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             
-            return back()->with('error', $e->getMessage());
+            return back()->with('error', 'Database setup failed: ' . $e->getMessage());
         }
     }
 
@@ -178,9 +183,9 @@ class InstallController extends Controller
             Log::info('createAdmin method started');
             
             $request->validate([
-                'name' => 'required',
-                'email' => 'required|email',
-                'password' => 'required|min:6',
+                'name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email',
+                'password' => 'required|string|min:6|confirmed',
             ]);
             
             // Test database connection (config is handled globally)
