@@ -192,12 +192,29 @@ class InstallController extends Controller
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => bcrypt($request->password),
+                'role' => 'admin',
+                'is_active' => true,
             ]);
             Log::info('Admin user created successfully');
+            
+            // Run seeders to populate default settings
+            try {
+                Artisan::call('db:seed', ['--force' => true]);
+                Log::info('Database seeded successfully');
+            } catch (\Exception $e) {
+                Log::warning('Seeder failed: ' . $e->getMessage());
+                // Continue anyway as this is not critical
+            }
             
             // Mark installation as complete
             $this->setEnv(['APP_INSTALLED' => 'true']);
             Log::info('Installation marked as complete');
+            
+            // Clear all caches to ensure new configuration is loaded
+            Artisan::call('config:clear');
+            Artisan::call('cache:clear');
+            Artisan::call('view:clear');
+            Log::info('All caches cleared');
             
             return redirect('/install/finish');
             
@@ -214,7 +231,61 @@ class InstallController extends Controller
 
     public function finish()
     {
-        return view('install.step5_finish');
+        // Verify installation is complete
+        try {
+            // Check if database is accessible
+            DB::connection()->getPdo();
+            
+            // Check if admin user exists
+            $adminUser = User::where('role', 'admin')->first();
+            if (!$adminUser) {
+                return redirect('/install')->with('error', 'Installation incomplete. Please try again.');
+            }
+            
+            // Check if settings table exists and has data
+            if (!Schema::hasTable('settings')) {
+                return redirect('/install')->with('error', 'Installation incomplete. Please try again.');
+            }
+            
+            Log::info('Installation verification successful');
+            return view('install.step5_finish');
+            
+        } catch (\Exception $e) {
+            Log::error('Installation verification failed: ' . $e->getMessage());
+            return redirect('/install')->with('error', 'Installation verification failed. Please check your configuration.');
+        }
+    }
+
+    /**
+     * Check if system is properly installed
+     */
+    public static function isSystemInstalled()
+    {
+        try {
+            // Check if APP_INSTALLED is set
+            if (env('APP_INSTALLED') !== 'true') {
+                return false;
+            }
+            
+            // Check if database is accessible
+            DB::connection()->getPdo();
+            
+            // Check if essential tables exist
+            if (!Schema::hasTable('users') || !Schema::hasTable('settings')) {
+                return false;
+            }
+            
+            // Check if admin user exists
+            $adminUser = DB::table('users')->where('role', 'admin')->first();
+            if (!$adminUser) {
+                return false;
+            }
+            
+            return true;
+            
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 
     private function setEnv(array $data)

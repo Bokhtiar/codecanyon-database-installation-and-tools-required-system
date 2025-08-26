@@ -3,28 +3,61 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\InstallController;
 use App\Http\Controllers\WelcomeController;
+use App\Http\Controllers\LicenseController;
+use App\Http\Controllers\Admin\AuthController as AdminAuthController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Admin\LicenseController as AdminLicenseController;
 use App\Models\User;
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
-|
-*/
 
-Route::get('/', [WelcomeController::class, 'index']);
+// License routes (ALWAYS accessible - first step)
+Route::get('/license/activate', [LicenseController::class, 'showActivation'])->name('license.activate');
+Route::post('/license/activate', [LicenseController::class, 'activate'])->name('license.activate.post');
+Route::get('/license/status', [LicenseController::class, 'showStatus'])->name('license.status');
+Route::post('/license/verify', [LicenseController::class, 'verify'])->name('license.verify');
+Route::post('/license/deactivate', [LicenseController::class, 'deactivate'])->name('license.deactivate');
 
-// routes/web.php
+// Demo information page (always accessible)
+Route::get('/demo/purchase-info', [App\Http\Controllers\DemoController::class, 'purchaseInfo'])->name('demo.purchase-info');
+Route::get('/demo/license-examples', [App\Http\Controllers\DemoController::class, 'licenseExamples'])->name('demo.license-examples');
+
+// Installation routes (always accessible during setup)
+Route::get('/install', [InstallController::class, 'welcome'])->name('install.welcome');
+Route::get('/install/requirements', [InstallController::class, 'requirements'])->name('install.requirements');
+Route::get('/install/env', [InstallController::class, 'envForm'])->name('install.env');
+Route::post('/install/env', [InstallController::class, 'saveEnv'])->name('install.saveEnv');
+Route::get('/install/database', [InstallController::class, 'dbSetup'])->name('install.database');
+Route::post('/install/admin', [InstallController::class, 'createAdmin'])->name('install.admin');
+Route::get('/install/finish', [InstallController::class, 'finish'])->name('install.finish');
+
+// All other routes require valid license AND proper installation
 Route::group(['middleware' => 'check.install'], function () {
-    Route::get('/install', [InstallController::class, 'welcome'])->name('install.welcome');
-    Route::get('/install/requirements', [InstallController::class, 'requirements'])->name('install.requirements');
-    Route::get('/install/env', [InstallController::class, 'envForm'])->name('install.env');
-    Route::post('/install/env', [InstallController::class, 'saveEnv'])->name('install.saveEnv');
-    Route::get('/install/database', [InstallController::class, 'dbSetup'])->name('install.database');
-    Route::post('/install/admin', [InstallController::class, 'createAdmin'])->name('install.admin');
-    Route::get('/install/finish', [InstallController::class, 'finish'])->name('install.finish');
+    // Frontend routes
+    Route::get('/', [WelcomeController::class, 'index']);
+    
+    // Admin routes
+    Route::group(['prefix' => 'admin'], function () {
+        // Guest admin routes
+        Route::get('login', [AdminAuthController::class, 'showLogin'])->name('admin.login');
+        Route::post('login', [AdminAuthController::class, 'login'])->name('admin.login.post');
+        
+        // Protected admin routes
+        Route::group(['middleware' => ['auth', 'admin']], function () {
+            Route::get('dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
+            Route::get('settings', [AdminDashboardController::class, 'settings'])->name('admin.settings');
+            Route::post('settings', [AdminDashboardController::class, 'updateSettings'])->name('admin.settings.update');
+            Route::post('logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
+            
+            // User management
+            Route::resource('users', AdminUserController::class, ['as' => 'admin']);
+            
+            // License management
+            Route::resource('licenses', AdminLicenseController::class, ['as' => 'admin']);
+            Route::post('licenses/{license}/verify', [AdminLicenseController::class, 'verify'])->name('admin.licenses.verify');
+            Route::post('licenses/{license}/activate', [AdminLicenseController::class, 'activate'])->name('admin.licenses.activate');
+            Route::post('licenses/{license}/deactivate', [AdminLicenseController::class, 'deactivate'])->name('admin.licenses.deactivate');
+            Route::post('licenses/bulk-verify', [AdminLicenseController::class, 'bulkVerify'])->name('admin.licenses.bulk-verify');
+        });
+    });
 });
 
