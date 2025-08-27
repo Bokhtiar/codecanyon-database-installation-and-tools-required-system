@@ -37,16 +37,31 @@ class CheckIfInstalled
             DB::connection()->getPdo();
             
             // Check if essential tables exist
-            if (!Schema::hasTable('users') || !Schema::hasTable('settings')) {
-                // Tables don't exist, redirect to installation
+            if (!Schema::hasTable('users')) {
+                // Users table doesn't exist, redirect to installation
                 return redirect('/install');
             }
             
-            // Check if at least one admin user exists
-            $adminUser = DB::table('users')->where('role', 'admin')->first();
-            if (!$adminUser) {
-                // No admin user found, redirect to installation
+            // Check if roles table exists (Spatie)
+            if (!Schema::hasTable('roles')) {
+                // Roles table doesn't exist, redirect to installation
                 return redirect('/install');
+            }
+            
+            // Check if at least one admin user exists with admin role
+            try {
+                $adminUser = \App\Models\User::role('admin')->first();
+                if (!$adminUser) {
+                    // No admin user with admin role found, redirect to installation
+                    return redirect('/install');
+                }
+            } catch (\Exception $e) {
+                // If Spatie is not working, fallback to basic check
+                $adminUser = DB::table('users')->first();
+                if (!$adminUser) {
+                    // No users found, redirect to installation
+                    return redirect('/install');
+                }
             }
             
         } catch (\Exception $e) {

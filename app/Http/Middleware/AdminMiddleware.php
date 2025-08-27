@@ -14,9 +14,12 @@ class AdminMiddleware
             return redirect('/admin/login');
         }
 
-        if (!Auth::user()->isAdmin()) {
+        $user = Auth::user();
+        
+        // Check if user has any admin panel access permissions
+        if (!$user->hasPermissionTo('view_dashboard') && !$user->hasPermissionTo('view_users') && !$user->hasPermissionTo('view_roles') && !$user->hasPermissionTo('view_permissions') && !$user->hasPermissionTo('view_settings')) {
             Auth::logout();
-            return redirect('/admin/login')->withErrors(['email' => 'Access denied. Admin privileges required.']);
+            return redirect('/admin/login')->withErrors(['email' => 'Access denied. Admin panel access required.']);
         }
 
         return $next($request);

@@ -6,14 +6,21 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Setting;
 use Illuminate\Http\Request;
+use Spatie\Permission\Models\Role;
 
 class DashboardController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:view_dashboard');
+        $this->middleware('permission:view_settings')->only(['settings', 'updateSettings']);
+    }
+
     public function index()
     {
         $stats = [
             'total_users' => User::count(),
-            'admin_users' => User::where('role', 'admin')->count(),
+            'admin_users' => User::role('admin')->count(),
             'active_users' => User::where('is_active', true)->count(),
         ];
 

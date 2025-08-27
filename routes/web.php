@@ -7,6 +7,8 @@ use App\Http\Controllers\LicenseController;
 use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Admin\RoleController as AdminRoleController;
+use App\Http\Controllers\Admin\PermissionController as AdminPermissionController;
 use App\Http\Controllers\Admin\LicenseController as AdminLicenseController;
 use App\Models\User;
 
@@ -50,6 +52,23 @@ Route::group(['middleware' => 'check.install'], function () {
             
             // User management
             Route::resource('users', AdminUserController::class, ['as' => 'admin']);
+            Route::post('users/{user}/toggle-status', [AdminUserController::class, 'toggleStatus'])->name('admin.users.toggle-status');
+            Route::post('users/{user}/assign-role', [AdminUserController::class, 'assignRole'])->name('admin.users.assign-role');
+            Route::post('users/{user}/remove-role', [AdminUserController::class, 'removeRole'])->name('admin.users.remove-role');
+            Route::get('users/{user}/permissions', [AdminUserController::class, 'permissions'])->name('admin.users.permissions');
+            Route::post('users/bulk-action', [AdminUserController::class, 'bulkAction'])->name('admin.users.bulk-action');
+            
+            // Role management
+            Route::resource('roles', AdminRoleController::class, ['as' => 'admin']);
+            Route::post('roles/{role}/assign-role', [AdminRoleController::class, 'assignRole'])->name('admin.roles.assign-role');
+            Route::post('roles/{role}/remove-role', [AdminRoleController::class, 'removeRole'])->name('admin.roles.remove-role');
+            Route::get('roles/{role}/permissions', [AdminRoleController::class, 'getPermissions'])->name('admin.roles.permissions');
+            
+            // Permission management
+            Route::resource('permissions', AdminPermissionController::class, ['as' => 'admin']);
+            Route::get('permissions/category/{category}', [AdminPermissionController::class, 'byCategory'])->name('admin.permissions.by-category');
+            Route::post('permissions/bulk-assign', [AdminPermissionController::class, 'bulkAssign'])->name('admin.permissions.bulk-assign');
+            Route::post('permissions/bulk-remove', [AdminPermissionController::class, 'bulkRemove'])->name('admin.permissions.bulk-remove');
             
             // License management
             Route::resource('licenses', AdminLicenseController::class, ['as' => 'admin']);

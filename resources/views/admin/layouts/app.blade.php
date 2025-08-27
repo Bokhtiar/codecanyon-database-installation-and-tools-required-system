@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin Panel') - {{ config('app.name', 'Laravel') }}</title>
     
     <!-- Tailwind CSS -->
@@ -43,25 +44,47 @@
         <div class="w-64 bg-white shadow-lg min-h-screen">
             <div class="p-4">
                 <nav class="space-y-2">
+                    @can('view_dashboard')
                     <a href="{{ route('admin.dashboard') }}" 
                        class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded {{ request()->routeIs('admin.dashboard') ? 'bg-blue-100 text-blue-700' : '' }}">
                         <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
                     </a>
+                    @endcan
                     
+                    @can('view_users')
                     <a href="{{ route('admin.users.index') }}" 
                        class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded {{ request()->routeIs('admin.users.*') ? 'bg-blue-100 text-blue-700' : '' }}">
                         <i class="fas fa-users mr-2"></i> Users
                     </a>
+                    @endcan
                     
+                    @can('view_roles')
+                    <a href="{{ route('admin.roles.index') }}" 
+                       class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded {{ request()->routeIs('admin.roles.*') ? 'bg-blue-100 text-blue-700' : '' }}">
+                        <i class="fas fa-user-tag mr-2"></i> Roles
+                    </a>
+                    @endcan
+                    
+                    @can('view_permissions')
+                    <a href="{{ route('admin.permissions.index') }}" 
+                       class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded {{ request()->routeIs('admin.permissions.*') ? 'bg-blue-100 text-blue-700' : '' }}">
+                        <i class="fas fa-key mr-2"></i> Permissions
+                    </a>
+                    @endcan
+                    
+                    @can('view_settings')
                     <a href="{{ route('admin.settings') }}" 
                        class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded {{ request()->routeIs('admin.settings*') ? 'bg-blue-100 text-blue-700' : '' }}">
                         <i class="fas fa-cog mr-2"></i> Settings
                     </a>
+                    @endcan
                     
+                    @can('view_licenses')
                     <a href="{{ route('admin.licenses.index') }}" 
                        class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded {{ request()->routeIs('admin.licenses.*') ? 'bg-blue-100 text-blue-700' : '' }}">
                         <i class="fas fa-key mr-2"></i> Licenses
                     </a>
+                    @endcan
                 </nav>
             </div>
         </div>

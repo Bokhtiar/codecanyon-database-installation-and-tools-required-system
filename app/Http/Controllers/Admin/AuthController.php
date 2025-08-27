@@ -26,9 +26,10 @@ class AuthController extends Controller
         if (Auth::attempt($credentials)) {
             $user = Auth::user();
             
-            if (!$user->isAdmin()) {
+            // Check if user has any admin panel access permissions
+            if (!$user->hasPermissionTo('view_dashboard') && !$user->hasPermissionTo('view_users') && !$user->hasPermissionTo('view_roles') && !$user->hasPermissionTo('view_permissions') && !$user->hasPermissionTo('view_settings')) {
                 Auth::logout();
-                return back()->withErrors(['email' => 'Access denied. Admin privileges required.']);
+                return back()->withErrors(['email' => 'Access denied. Admin panel access required.']);
             }
 
             $user->update(['last_login_at' => now()]);
